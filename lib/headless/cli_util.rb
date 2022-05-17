@@ -49,8 +49,13 @@ class Headless
     def self.kill_process(pid_filename, options={})
       if pid = read_pid(pid_filename)
         begin
-          Process.kill 'TERM', pid
-          Process.wait pid if options[:wait]
+          Timeout.timeout(60) do
+            Process.kill 'TERM', pid
+            Process.wait pid if options[:wait]
+          end
+        rescue Timeout::Error
+          Process.kill 9, pid
+          Process.wait pid
         rescue Errno::ESRCH
           # no such process; assume it's already killed
         rescue Errno::ECHILD
